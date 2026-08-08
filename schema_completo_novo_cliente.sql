@@ -102,7 +102,7 @@ begin
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'nome', 'Sem nome'),
-    coalesce(new.raw_user_meta_data->>'papel', 'psicologo')
+    'psicologo'
   );
   return new;
 end;

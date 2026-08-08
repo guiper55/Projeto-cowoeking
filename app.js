@@ -1,175 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda do Consultório</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<style>
-  /* =================================================================
-     PERSONALIZAÇÃO DO CLIENTE — cores da marca
-     Troque os valores abaixo para adaptar à identidade visual de
-     cada consultório. --accent é a cor de destaque principal
-     (botões, links); --room1/--room2 diferenciam as salas na agenda.
-     ================================================================= */
-  :root{
-    --bg:#EFF2ED; --surface:#FFFFFF; --ink:#1E3332; --ink-soft:#52706D;
-    --accent:#A8703E; --accent-soft:#F0E2D3;
-    --room1:#3D6A8A; --room1-soft:#E1EAF0;
-    --room2:#7A5C8F; --room2-soft:#EAE3F0;
-    --danger:#B14B3F; --danger-soft:#F5E1DE;
-    --success:#4C7A5D; --success-soft:#E2EEE5;
-    --border:#D8DED4;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--bg);color:var(--ink);font-family:'Work Sans',sans-serif;min-height:100vh;}
-  h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;margin:0;letter-spacing:-0.01em;}
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  button{font-family:'Work Sans',sans-serif;cursor:pointer;border:none;border-radius:8px;transition:transform .12s ease, box-shadow .12s ease, background .15s ease;}
-  button:active{transform:translateY(1px);}
-  input,select{font-family:'IBM Plex Mono',monospace;font-size:14px;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;background:var(--surface);color:var(--ink);outline:none;}
-  input:focus,select:focus{border-color:var(--accent);}
-  .btn-primary{background:var(--ink);color:#fff;padding:11px 20px;font-weight:600;font-size:14px;}
-  .btn-primary:hover{background:var(--accent);}
-  .btn-primary:disabled{background:#B9C2BC;cursor:not-allowed;}
-  .btn-ghost{background:transparent;color:var(--ink-soft);padding:9px 14px;font-size:13px;border:1.5px solid var(--border);}
-  .btn-ghost:hover{border-color:var(--ink-soft);color:var(--ink);}
-  .btn-danger{background:transparent;color:var(--danger);padding:6px 12px;font-size:12px;border:1.5px solid var(--danger-soft);}
-  .btn-danger:hover{background:var(--danger-soft);}
-  .btn-small{padding:6px 12px;font-size:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--ink-soft);}
-  .btn-small:hover{border-color:var(--accent);color:var(--accent);}
-
-  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-  .login-card{background:var(--surface);border-radius:18px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 1px 2px rgba(30,51,50,.06), 0 12px 32px rgba(30,51,50,.08);}
-  .login-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
-  .login-card h1{font-size:26px;margin-bottom:22px;}
-  .field{margin-bottom:14px;}
-  .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;font-family:'Work Sans',sans-serif;}
-  .field input,.field select{width:100%;}
-  .login-switch{text-align:center;margin-top:16px;font-size:12.5px;color:var(--ink-soft);}
-  .login-switch a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none;}
-  .login-error{background:var(--danger-soft);color:var(--danger);font-size:12.5px;padding:9px 12px;border-radius:8px;margin-bottom:14px;}
-  .login-ok{background:var(--success-soft);color:var(--success);font-size:12.5px;padding:9px 12px;border-radius:8px;margin-bottom:14px;}
-  .login-hint{font-size:11px;color:var(--ink-soft);margin-top:14px;line-height:1.5;opacity:.8;}
-
-  #app-screen{display:none;min-height:100vh;}
-  .shell{display:flex;min-height:100vh;}
-  .sidebar{width:220px;flex-shrink:0;background:var(--ink);color:#fff;padding:26px 18px;display:flex;flex-direction:column;}
-  .brand{margin-bottom:4px;}
-  .brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9BC4BC;}
-  .brand h1{font-size:20px;color:#fff;margin-top:4px;}
-  .who{margin-top:20px;margin-bottom:26px;padding:12px 14px;background:rgba(255,255,255,.07);border-radius:10px;}
-  .who .name{font-weight:600;font-size:14px;}
-  .who .role{font-size:11px;color:#9BC4BC;font-family:'IBM Plex Mono',monospace;margin-top:2px;text-transform:uppercase;letter-spacing:.06em;}
-  .nav-item{padding:11px 12px;border-radius:8px;font-size:14px;font-weight:500;color:#C9D6D3;margin-bottom:3px;display:flex;align-items:center;gap:10px;}
-  .nav-item.active{background:rgba(255,255,255,.12);color:#fff;}
-  .nav-item:hover{color:#fff;}
-  .sidebar-foot{margin-top:auto;}
-  .logout-btn{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,.2);color:#C9D6D3;padding:9px 0;font-size:13px;border-radius:8px;}
-  .logout-btn:hover{border-color:#fff;color:#fff;}
-
-  .main{flex:1;padding:32px 40px;max-width:1100px;}
-  .page-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:10px;}
-  .page-head h2{font-size:24px;}
-  .page-sub{color:var(--ink-soft);font-size:13.5px;margin-top:3px;}
-
-  .card{background:var(--surface);border-radius:14px;padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 2px rgba(30,51,50,.05);}
-  .card-title{font-size:13px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;}
-
-  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
-  .cell-stat{background:var(--bg);border-radius:10px;padding:14px 16px;flex:1;min-width:130px;}
-  .cell-stat .num{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;}
-  .cell-stat .lbl{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
-
-  .room-tabs{display:flex;gap:8px;margin-bottom:18px;}
-  .room-tab{padding:8px 16px;border-radius:8px;font-size:13.5px;font-weight:600;border:1.5px solid var(--border);color:var(--ink-soft);}
-  .room-tab.r1.active{background:var(--room1-soft);border-color:var(--room1);color:var(--room1);}
-  .room-tab.r2.active{background:var(--room2-soft);border-color:var(--room2);color:var(--room2);}
-
-  .subtabs{display:flex;gap:8px;margin-bottom:20px;}
-  .subtab{padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;border:1.5px solid var(--border);color:var(--ink-soft);cursor:pointer;}
-  .subtab.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
-
-  .ledger{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
-  .slot{border-radius:9px;padding:10px 6px;text-align:center;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;user-select:none;}
-  .slot .t{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;}
-  .slot .s{font-size:10px;margin-top:3px;color:var(--ink-soft);}
-  .slot.free:hover{border-color:var(--accent);}
-  .slot.selected{background:var(--accent-soft);border-color:var(--accent);}
-  .slot.selected .t{color:var(--accent);}
-  .slot.mine{background:var(--success-soft);border-color:var(--success);cursor:default;}
-  .slot.mine .t{color:var(--success);}
-  .slot.taken{background:var(--danger-soft);border-color:var(--danger-soft);cursor:not-allowed;opacity:.85;}
-  .slot.taken .t{color:var(--danger);}
-  .slot.blocked{background:repeating-linear-gradient(45deg,#E4E4DE,#E4E4DE 6px,#DADAD3 6px,#DADAD3 12px);border-color:#C7C7BE;cursor:not-allowed;}
-  .slot.blocked .t{color:#7C7C72;}
-  .slot.past{opacity:.35;cursor:not-allowed;}
-
-  .confirm-bar{margin-top:16px;display:flex;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:10px;padding:14px 18px;flex-wrap:wrap;gap:12px;}
-  .confirm-bar .txt{font-size:13.5px;}
-  .confirm-bar .val{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--accent);}
-
-  table{width:100%;border-collapse:collapse;font-size:13.5px;}
-  th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);padding:8px 10px;border-bottom:1.5px solid var(--border);}
-  td{padding:10px 10px;border-bottom:1px solid var(--border);}
-  tr:last-child td{border-bottom:none;}
-  .tag{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;}
-  .tag.r1{background:var(--room1-soft);color:var(--room1);}
-  .tag.r2{background:var(--room2-soft);color:var(--room2);}
-  .tag.admin{background:var(--accent-soft);color:var(--accent);}
-  .tag.tipo-reserva{background:var(--success-soft);color:var(--success);}
-  .tag.tipo-bloqueio{background:var(--danger-soft);color:var(--danger);}
-  .empty{padding:30px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
-  .loading{padding:30px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
-
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:50;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
-
-  .subhead{font-size:14px;font-weight:600;margin:22px 0 10px;color:var(--ink);}
-  .subhead:first-child{margin-top:0;}
-
-  @media (max-width:760px){
-    .shell{flex-direction:column;}
-    .sidebar{width:100%;flex-direction:row;align-items:center;padding:14px 16px;gap:16px;overflow-x:auto;}
-    .brand,.who,.sidebar-foot{display:none;}
-    .nav-item{white-space:nowrap;margin-bottom:0;}
-    .main{padding:22px 18px;}
-  }
-</style>
-</head>
-<body>
-
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-eyebrow" id="login-eyebrow">Consultório · Reserva de Salas</div>
-    <h1 id="login-title">Agenda</h1>
-    <div id="login-msg"></div>
-    <div id="login-body"></div>
-    <div class="login-hint" id="login-hint"></div>
-  </div>
-</div>
-
-<div id="app-screen">
-  <div class="shell">
-    <div class="sidebar">
-      <div class="brand"><div class="brand-eyebrow" id="brand-eyebrow">Consultório</div><h1 id="brand-title">Agenda</h1></div>
-      <div class="who"><div class="name" id="who-name"></div><div class="role" id="who-role"></div></div>
-      <div id="nav"></div>
-      <div class="sidebar-foot"><button class="logout-btn" onclick="logout()">Sair</button></div>
-    </div>
-    <div class="main" id="main"></div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
 /* =================================================================
    PERSONALIZAÇÃO DO CLIENTE — nome e logo
    nomeConsultorio: aparece como texto pequeno acima do nome do app
@@ -195,14 +23,27 @@ function aplicarMarca(){
   }
 }
 
-/* ===================== SUPABASE ===================== */
-const SUPABASE_URL = 'https://fiowqgzyrzjmzriowkpg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpb3dxZ3p5cnpqbXpyaW93a3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2ODY2NTYsImV4cCI6MjEwMTI2MjY1Nn0.IRbXzDzYr5AH1wDPuvro_-NnhTj_548S8vx8F_diXnk';
+/* ===================== SEGURANÇA: escape de HTML ===================== */
+/* Todo texto que vem do usuário/banco (nome, motivo, etc.) precisa passar
+   por esc() antes de entrar em um template inserido via innerHTML — caso
+   contrário, alguém poderia gravar algo como "<img src=x onerror=...>"
+   num campo de texto e esse código rodaria na tela de outros usuários. */
+function esc(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+/* ===================== SUPABASE (cliente) ===================== */
+const SUPABASE_URL = 'https://epyohojhhulsqelpucav.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVweW9ob2poaHVsc3FlbHB1Y2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMzYxMDUsImV4cCI6MjEwMTcxMjEwNX0.mgyLy2Fgr2sgnzaKu1Y1vIWDkihd1xx3RlpfuwVqkFA';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ===================== CONSTANTES ===================== */
 const ROOMS = [ {id:'sala1', nome:'Sala 1', cls:'r1'}, {id:'sala2', nome:'Sala 2', cls:'r2'} ];
 const HOURS = Array.from({length:14}, (_,i)=>7+i); // 07:00 .. 20:00
 
+/* ===================== ESTADO GLOBAL ===================== */
 let config = {valor_hora: 80};
 let perfis = [];     // [{id,nome,papel}]
 let reservas = [];   // [{id,psicologo_id,sala_id,data,hora,valor_hora}]
@@ -307,17 +148,17 @@ function renderLoginBody(){
     body.innerHTML = `
       <div class="field"><label>E-mail</label><input type="email" id="in-email" placeholder="voce@email.com"></div>
       <div class="field"><label>Senha</label><input type="password" id="in-senha" placeholder="••••••••"></div>
-      <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
-      <div class="login-switch">Ainda não tem cadastro? <a onclick="toggleLoginMode('cadastrar')">Cadastre-se</a></div>
+      <button class="btn-primary" style="width:100%" data-action="login">Entrar</button>
+      <div class="login-switch">Ainda não tem cadastro? <a data-action="toggle-login-mode" data-mode="cadastrar">Cadastre-se</a></div>
     `;
     hint.textContent = 'Use o e-mail e a senha cadastrados por você.';
   } else {
     body.innerHTML = `
-      <div class="field"><label>Nome completo</label><input type="text" id="in-nome" placeholder="Seu nome"></div>
+      <div class="field"><label>Nome completo</label><input type="text" id="in-nome" maxlength="80" placeholder="Seu nome"></div>
       <div class="field"><label>E-mail</label><input type="email" id="in-email-novo" placeholder="voce@email.com"></div>
       <div class="field"><label>Senha (mín. 6 caracteres)</label><input type="password" id="in-senha-nova" placeholder="••••••••"></div>
-      <button class="btn-primary" style="width:100%" onclick="doCadastro()">Criar cadastro</button>
-      <div class="login-switch">Já tem cadastro? <a onclick="toggleLoginMode('entrar')">Fazer login</a></div>
+      <button class="btn-primary" style="width:100%" data-action="cadastro">Criar cadastro</button>
+      <div class="login-switch">Já tem cadastro? <a data-action="toggle-login-mode" data-mode="entrar">Fazer login</a></div>
     `;
     hint.textContent = 'Seu cadastro começa como psicólogo(a). A promoção para administrador é feita pela equipe do consultório.';
   }
@@ -393,7 +234,7 @@ function renderNav(){
     ? [['disponibilidade','Disponibilidade'],['minhas','Minhas reservas'],['relatorio','Relatório mensal']]
     : [['visaogeral','Visão geral'],['bloqueios','Bloqueios'],['config','Configurações'],['relatoriogeral','Relatório geral']];
   nav.innerHTML = items.map(([key,label])=>
-    `<div class="nav-item ${uiSection===key?'active':''}" onclick="goSection('${key}')">${label}</div>`
+    `<div class="nav-item ${uiSection===key?'active':''}" data-action="go-section" data-section="${key}">${label}</div>`
   ).join('');
 }
 function goSection(key){ uiSection = key; uiSelection = new Set(); renderNav(); renderMain(); }
@@ -443,7 +284,7 @@ function viewDisponibilidade(){
     else if(status==='blocked') sub = periodo ? (periodo.motivo ? periodo.motivo.split(' ')[0] : 'bloqueado') : (b && b.motivo ? b.motivo.split(' ')[0] : 'bloqueado');
     else if(status==='past') sub='—';
     else if(status==='selected') sub='selecionado';
-    return `<div class="slot ${status}" data-hour="${h}"><div class="t">${fmtHour(h)}</div><div class="s">${sub}</div></div>`;
+    return `<div class="slot ${status}" data-hour="${h}"><div class="t">${fmtHour(h)}</div><div class="s">${esc(sub)}</div></div>`;
   }).join('');
 
   const n = uiSelection.size;
@@ -465,8 +306,8 @@ function viewDisponibilidade(){
     <div class="confirm-bar">
       <div class="txt">${n} horário${n>1?'s':''} selecionado${n>1?'s':''} em <strong>${room.nome}</strong>, ${fmtDateBR(uiDate)} — <span class="val">${fmtMoney(valor)}</span> <span class="mono" style="color:var(--ink-soft);">por ocorrência</span></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn-ghost" onclick="clearSelection()">Limpar</button>
-        <button class="btn-primary" onclick="confirmReserva()">Confirmar reserva</button>
+        <button class="btn-ghost" data-action="clear-selection">Limpar</button>
+        <button class="btn-primary" data-action="confirm-reserva">Confirmar reserva</button>
       </div>
     </div>` : '';
 
@@ -476,7 +317,7 @@ function viewDisponibilidade(){
       <input type="date" id="date-input" value="${uiDate}" min="${todayISO()}">
     </div>
     <div class="card">
-      <div class="room-tabs">${ROOMS.map(r=>`<div class="room-tab ${r.cls} ${uiRoom===r.id?'active':''}" onclick="setRoom('${r.id}')">${r.nome}</div>`).join('')}</div>
+      <div class="room-tabs">${ROOMS.map(r=>`<div class="room-tab ${r.cls} ${uiRoom===r.id?'active':''}" data-action="set-room" data-room="${r.id}">${r.nome}</div>`).join('')}</div>
       <div class="ledger" id="ledger">${slotsHtml}</div>
       ${confirmBar}
     </div>
@@ -577,7 +418,7 @@ function viewMinhasReservas(){
       <td class="mono">${fmtHour(r.hora)}–${fmtHour(r.hora+1)}</td>
       <td class="mono">${fmtMoney(r.valor_hora)}</td>
       ${canCancelSection ? (podeCancelar
-        ? `<td><button class="btn-danger" onclick="cancelarReserva('${r.id}')">Cancelar</button></td>`
+        ? `<td><button class="btn-danger" data-action="cancelar-reserva" data-id="${r.id}">Cancelar</button></td>`
         : `<td><span class="login-hint" style="margin:0;">Efetivada</span></td>`) : ''}
     </tr>`;}).join('')}
     </tbody></table>`;
@@ -630,7 +471,7 @@ function viewRelatorioMensal(){
         <td class="mono">${fmtMoney(r.valor_hora)}</td>
       </tr>`).join('')}
       </tbody></table>`}
-      <div style="margin-top:18px;"><button class="btn-primary" onclick="baixarPdfPsicologo()" ${minhas.length===0?'disabled':''}>Baixar PDF do mês</button></div>
+      <div style="margin-top:18px;"><button class="btn-primary" data-action="baixar-pdf-psicologo" ${minhas.length===0?'disabled':''}>Baixar PDF do mês</button></div>
     </div>
   `;
 }
@@ -664,7 +505,7 @@ function viewVisaoGeral(){
     (uiAdminRoomFilter==='todas' || r.sala_id===uiAdminRoomFilter)
   ).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));
   const total = filtered.reduce((s,r)=>s+Number(r.valor_hora),0);
-  const psiOpts = perfis.filter(p=>p.papel==='psicologo').map(p=>`<option value="${p.id}" ${uiAdminPsiFilter===p.id?'selected':''}>${p.nome}</option>`).join('');
+  const psiOpts = perfis.filter(p=>p.papel==='psicologo').map(p=>`<option value="${p.id}" ${uiAdminPsiFilter===p.id?'selected':''}>${esc(p.nome)}</option>`).join('');
 
   // Bloqueios não pertencem a um psicólogo, então só entram na lista quando o filtro de psicólogo está em "Todos"
   const bloqueiosFiltrados = (uiAdminTipoFilter==='reservas' || uiAdminPsiFilter!=='todos') ? [] : bloqueiosDoMes(uiAdminMonthFilter, uiAdminRoomFilter);
@@ -683,7 +524,7 @@ function viewVisaoGeral(){
       if(r){ st='taken'; sub = nomeDoPsi(r.psicologo_id).split(' ')[0]; }
       else if(periodo){ st='blocked'; sub = periodo.motivo ? periodo.motivo.split(' ')[0] : 'período'; }
       else if(b){ st='blocked'; sub = b.motivo ? b.motivo.split(' ')[0] : 'bloqueado'; }
-      return `<div class="slot ${st}" style="cursor:default;"><div class="t">${fmtHour(h)}</div><div class="s">${sub}</div></div>`;
+      return `<div class="slot ${st}" style="cursor:default;"><div class="t">${fmtHour(h)}</div><div class="s">${esc(sub)}</div></div>`;
     }).join('');
     return `<div style="margin-bottom:14px;"><span class="tag ${room.cls}">${room.nome}</span><div class="ledger" style="margin-top:8px;">${cells}</div></div>`;
   }).join('');
@@ -725,17 +566,17 @@ function viewVisaoGeral(){
       ${linhas.map(l=>{
         let acao;
         if(l.tipo==='reserva'){
-          acao = `<button class="btn-danger" onclick="cancelarReserva('${l.id}')">Cancelar</button>`;
+          acao = `<button class="btn-danger" data-action="cancelar-reserva" data-id="${l.id}">Cancelar</button>`;
         } else if(l.origem==='pontual'){
-          acao = `<button class="btn-danger" onclick="liberarBloqueioPontual('${l.id}')">Liberar</button>`;
+          acao = `<button class="btn-danger" data-action="liberar-bloqueio-pontual" data-id="${l.id}">Liberar</button>`;
         } else if(l.especifico){
-          acao = `<button class="btn-danger" onclick="removerPeriodo('${l.id}')">Liberar</button>`;
+          acao = `<button class="btn-danger" data-action="remover-periodo" data-id="${l.id}">Liberar</button>`;
         } else {
           acao = `<span class="login-hint" style="margin:0;">Gerenciar na aba Bloqueios</span>`;
         }
         return `<tr>
         <td><span class="tag ${l.tipo==='reserva'?'tipo-reserva':'tipo-bloqueio'}">${l.tipo==='reserva'?'Reserva':'Bloqueio'}</span></td>
-        <td>${l.quem}</td>
+        <td>${esc(l.quem)}</td>
         <td class="mono">${fmtDateBR(l.data)}</td>
         <td><span class="tag ${roomCls(l.sala_id)}">${roomName(l.sala_id)}</span></td>
         <td class="mono">${fmtHour(l.hora)}–${fmtHour(l.hora+1)}</td>
@@ -753,8 +594,8 @@ function viewVisaoGeral(){
           <input type="date" id="agenda-data" value="${todayISO()}">
         </div>
         <div style="display:flex; gap:10px;">
-          <button class="btn-primary" onclick="gerarPdfAgenda('semana')">Agenda da Semana (7 dias)</button>
-          <button class="btn-primary" onclick="gerarPdfAgenda('mes')">Agenda do Mês</button>
+          <button class="btn-primary" data-action="gerar-pdf-agenda" data-tipo="semana">Agenda da Semana (7 dias)</button>
+          <button class="btn-primary" data-action="gerar-pdf-agenda" data-tipo="mes">Agenda do Mês</button>
         </div>
       </div>
       <div class="login-hint">O relatório "Agenda do Mês" usará o Mês selecionado no filtro lá no topo desta página. O PDF gerado listará apenas a data, sala, horário e o nome de quem reservou (sem valores financeiros).</div>
@@ -776,8 +617,8 @@ function viewBloqueios(){
       <td class="mono">${p.data_fim ? fmtDateBR(p.data_fim) : 'Até ser desbloqueado'}</td>
       <td>${repete}</td>
       <td class="mono">${horario}</td>
-      <td>${p.motivo || '—'}</td>
-      <td><button class="btn-danger" onclick="removerPeriodo('${p.id}')">Desbloquear</button></td>
+      <td>${esc(p.motivo || '—')}</td>
+      <td><button class="btn-danger" data-action="remover-periodo" data-id="${p.id}">Desbloquear</button></td>
     </tr>`;}).join('')}
     </tbody></table>`;
 
@@ -791,15 +632,15 @@ function viewBloqueios(){
     else if(bloqueado){ status='blocked'; sub = bloqueado.motivo ? bloqueado.motivo.split(' ')[0] : 'bloqueado'; }
     const periodoHorario = periodo && periodo.hora_inicio!=null ? 'especifico' : 'inteiro';
     return `<div class="slot ${status}" data-hour="${h}" data-bloqueado="${bloqueado?bloqueado.id:''}" data-reservado="${reservado?'1':''}" data-periodo="${periodo?periodo.id:''}" data-periodo-horario="${periodoHorario}">
-      <div class="t">${fmtHour(h)}</div><div class="s">${sub}</div></div>`;
+      <div class="t">${fmtHour(h)}</div><div class="s">${esc(sub)}</div></div>`;
   }).join('');
 
   return `
     <div class="page-head"><div><h2>Bloqueios de horário</h2><div class="page-sub">Bloqueie uma sala por um período, num dia da semana específico ou de forma pontual — útil para manutenção, feriados ou eventos.</div></div></div>
 
     <div class="subtabs">
-      <div class="subtab ${uiBloqTab==='periodo'?'active':''}" onclick="setBloqTab('periodo')">Bloqueio por Período</div>
-      <div class="subtab ${uiBloqTab==='hora'?'active':''}" onclick="setBloqTab('hora')">Bloqueio por Horário</div>
+      <div class="subtab ${uiBloqTab==='periodo'?'active':''}" data-action="set-bloq-tab" data-tab="periodo">Bloqueio por Período</div>
+      <div class="subtab ${uiBloqTab==='hora'?'active':''}" data-action="set-bloq-tab" data-tab="hora">Bloqueio por Horário</div>
     </div>
 
     ${uiBloqTab==='periodo' ? `
@@ -845,8 +686,8 @@ function viewBloqueios(){
         </div>
       </div>
       <div class="login-hint" id="periodo-semanal-hint" style="margin:10px 0 0;"></div>
-      <div class="field" style="margin-top:10px;"><label>Motivo (opcional)</label><input type="text" id="periodo-motivo" placeholder="Ex: reforma, férias coletivas, evento" style="width:100%;"></div>
-      <button class="btn-primary" style="margin-top:10px;" onclick="bloquearPeriodo()">Bloquear</button>
+      <div class="field" style="margin-top:10px;"><label>Motivo (opcional)</label><input type="text" id="periodo-motivo" maxlength="80" placeholder="Ex: reforma, férias coletivas, evento" style="width:100%;"></div>
+      <button class="btn-primary" style="margin-top:10px;" data-action="bloquear-periodo">Bloquear</button>
     </div>
     ` : `
     <div class="card">
@@ -854,7 +695,7 @@ function viewBloqueios(){
       <div class="row" style="margin-bottom:16px;">
         <div class="field" style="margin:0;"><label>Data</label><input type="date" id="bloq-date-input" value="${uiBloqDate}" min="${todayISO()}"></div>
       </div>
-      <div class="room-tabs">${ROOMS.map(r=>`<div class="room-tab ${r.cls} ${uiBloqRoom===r.id?'active':''}" onclick="setBloqRoom('${r.id}')">${r.nome}</div>`).join('')}</div>
+      <div class="room-tabs">${ROOMS.map(r=>`<div class="room-tab ${r.cls} ${uiBloqRoom===r.id?'active':''}" data-action="set-bloq-room" data-room="${r.id}">${r.nome}</div>`).join('')}</div>
       <div class="row" style="margin-bottom:16px;">
         <div class="field" style="margin:0;">
           <label>Repetição</label>
@@ -874,7 +715,7 @@ function viewBloqueios(){
           <label>Data final</label>
           <input type="date" id="bloq-recorrencia-ate" min="${uiBloqDate}">
         </div>
-        <div class="field" style="flex:1;min-width:220px;margin:0;"><label>Motivo (opcional, usado no próximo bloqueio)</label><input type="text" id="bloq-motivo" placeholder="Ex: manutenção pontual"></div>
+        <div class="field" style="flex:1;min-width:220px;margin:0;"><label>Motivo (opcional, usado no próximo bloqueio)</label><input type="text" id="bloq-motivo" maxlength="80" placeholder="Ex: manutenção pontual"></div>
       </div>
       <div class="login-hint" id="bloq-recorrencia-hint" style="margin:0 0 14px;"></div>
       <div class="ledger" id="bloq-ledger">${slotsHtml}</div>
@@ -1067,7 +908,7 @@ function viewConfig(){
       <div class="card-title">Valor da hora/reserva</div>
       <div class="row">
         <div class="field" style="margin:0;"><label>Valor em R$</label><input type="number" id="valor-hora" min="0" step="5" value="${config.valor_hora}" style="width:140px;"></div>
-        <button class="btn-primary" onclick="salvarValorHora()">Salvar</button>
+        <button class="btn-primary" data-action="salvar-valor-hora">Salvar</button>
       </div>
       <div class="login-hint">Reservas já feitas mantêm o valor vigente no momento em que foram criadas; a alteração vale para novas reservas.</div>
     </div>
@@ -1075,9 +916,9 @@ function viewConfig(){
       <div class="card-title">Pessoas cadastradas (${perfis.length})</div>
       <table><thead><tr><th>Nome</th><th>Papel</th><th></th></tr></thead><tbody>
       ${perfis.map(p=>`<tr>
-        <td>${p.nome}</td>
+        <td>${esc(p.nome)}</td>
         <td>${p.papel==='admin' ? '<span class="tag admin">Administrador</span>' : '<span class="tag r1">Psicólogo(a)</span>'}</td>
-        <td>${p.id!==currentUser.id ? `<button class="btn-small" onclick="alternarPapel('${p.id}','${p.papel}')">${p.papel==='admin' ? 'Tornar psicólogo(a)' : 'Tornar administrador'}</button>` : '<span class="login-hint" style="margin:0;">você</span>'}</td>
+        <td>${p.id!==currentUser.id ? `<button class="btn-small" data-action="alternar-papel" data-id="${p.id}" data-papel="${p.papel}">${p.papel==='admin' ? 'Tornar psicólogo(a)' : 'Tornar administrador'}</button>` : '<span class="login-hint" style="margin:0;">você</span>'}</td>
       </tr>`).join('')}
       </tbody></table>
     </div>
@@ -1111,10 +952,10 @@ function viewRelatorioGeral(){
   });
   const grupos = Object.values(porPsi).sort((a,b)=>a.nome.localeCompare(b.nome));
   const grandTotal = doMes.reduce((s,r)=>s+Number(r.valor_hora),0);
-  const psiOptsRelatorio = perfis.filter(p=>p.papel==='psicologo').sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}" ${uiRelatorioPsiFilter===p.id?'selected':''}>${p.nome}</option>`).join('');
+  const psiOptsRelatorio = perfis.filter(p=>p.papel==='psicologo').sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}" ${uiRelatorioPsiFilter===p.id?'selected':''}>${esc(p.nome)}</option>`).join('');
 
   const gruposHtml = grupos.length===0 ? '<div class="empty">Nenhuma reserva encontrada com esses filtros.</div>' : grupos.map(g=>`
-    <div class="subhead">${g.nome} <span class="mono" style="color:var(--ink-soft);font-weight:400;">(${g.itens.length} reservas · ${fmtMoney(g.total)})</span></div>
+    <div class="subhead">${esc(g.nome)} <span class="mono" style="color:var(--ink-soft);font-weight:400;">(${g.itens.length} reservas · ${fmtMoney(g.total)})</span></div>
     <table><thead><tr><th>Data</th><th>Sala</th><th>Horário</th><th>Valor</th></tr></thead><tbody>
     ${g.itens.sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).map(r=>`<tr>
       <td class="mono">${fmtDateBR(r.data)}</td>
@@ -1142,7 +983,7 @@ function viewRelatorioGeral(){
         <div class="cell-stat"><div class="num">${fmtMoney(grandTotal)}</div><div class="lbl">valor total consolidado</div></div>
       </div>
       ${gruposHtml}
-      <div style="margin-top:18px;"><button class="btn-primary" onclick="baixarPdfAdmin()" ${doMes.length===0?'disabled':''}>Baixar PDF ${uiRelatorioPsiFilter==='todos' ? 'geral do mês' : 'deste psicólogo'}</button></div>
+      <div style="margin-top:18px;"><button class="btn-primary" data-action="baixar-pdf-admin" ${doMes.length===0?'disabled':''}>Baixar PDF ${uiRelatorioPsiFilter==='todos' ? 'geral do mês' : 'deste psicólogo'}</button></div>
     </div>
   `;
 }
@@ -1182,26 +1023,7 @@ function baixarPdfAdmin(){
   doc.save(uiRelatorioPsiFilter==='todos' ? `relatorio-geral-${uiReportMonth}.pdf` : `relatorio-${nomeDoPsi(uiRelatorioPsiFilter).replace(/\s+/g,'_')}-${uiReportMonth}.pdf`);
 }
 
-/* ===================== GLOBAL DELEGATED EVENTS ===================== */
-document.addEventListener('change', (e)=>{
-  if(e.target.id==='month-input'){ uiReportMonth = e.target.value; renderMain(); }
-  if(e.target.id==='month-input-admin'){ uiReportMonth = e.target.value; renderMain(); }
-  if(e.target.id==='admin-month'){ uiAdminMonthFilter = e.target.value; renderMain(); }
-  if(e.target.id==='admin-psi'){ uiAdminPsiFilter = e.target.value; renderMain(); }
-  if(e.target.id==='admin-room'){ uiAdminRoomFilter = e.target.value; renderMain(); }
-  if(e.target.id==='admin-tipo'){ uiAdminTipoFilter = e.target.value; renderMain(); }
-  if(e.target.id==='relatorio-psi'){ uiRelatorioPsiFilter = e.target.value; renderMain(); }
-});
-
-/* ===================== INIT ===================== */
-(async function init(){
-  aplicarMarca();
-  toggleLoginMode('entrar');
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){ await afterAuth(session.user); }
-})();
-
-/* ===================== EXPORTAR AGENDA OPERACIONAL ===================== */
+/* ===================== EXPORTAR AGENDA OPERACIONAL (admin) ===================== */
 function gerarPdfAgenda(tipo) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -1221,7 +1043,7 @@ function gerarPdfAgenda(tipo) {
      titulo = "Agenda Operacional da Semana";
      subtitulo = `Período: ${fmtDateBR(datasNoPeriodo[0])} a ${fmtDateBR(datasNoPeriodo[6])}`;
   } else {
-     const mes = document.getElementById('admin-month').value; 
+     const mes = document.getElementById('admin-month').value;
      const [anoStr, mesStr] = mes.split('-');
      const diasNoMes = new Date(parseInt(anoStr), parseInt(mesStr), 0).getDate();
      for(let i = 1; i <= diasNoMes; i++) {
@@ -1247,7 +1069,7 @@ function gerarPdfAgenda(tipo) {
                  });
                  return; // Pula para a próxima hora
              }
-             
+
              // Checa se há bloqueio de período (recorrente ou longo)
              const periodo = periodoQueBloqueiaSlot(room.id, d, h);
              if (periodo) {
@@ -1257,7 +1079,7 @@ function gerarPdfAgenda(tipo) {
                  });
                  return; // Pula para a próxima hora
              }
-             
+
              // Checa se há bloqueio pontual (1 horinha só)
              const bloqueado = bloqueios.find(x => x.sala_id === room.id && x.data === d && x.hora === h);
              if (bloqueado) {
@@ -1301,6 +1123,50 @@ function gerarPdfAgenda(tipo) {
 
   doc.save(`agenda-${tipo}.pdf`);
 }
-</script>
-</body>
-</html>
+
+/* ===================== GLOBAL DELEGATED EVENTS ===================== */
+document.addEventListener('change', (e)=>{
+  if(e.target.id==='month-input'){ uiReportMonth = e.target.value; renderMain(); }
+  if(e.target.id==='month-input-admin'){ uiReportMonth = e.target.value; renderMain(); }
+  if(e.target.id==='admin-month'){ uiAdminMonthFilter = e.target.value; renderMain(); }
+  if(e.target.id==='admin-psi'){ uiAdminPsiFilter = e.target.value; renderMain(); }
+  if(e.target.id==='admin-room'){ uiAdminRoomFilter = e.target.value; renderMain(); }
+  if(e.target.id==='admin-tipo'){ uiAdminTipoFilter = e.target.value; renderMain(); }
+  if(e.target.id==='relatorio-psi'){ uiRelatorioPsiFilter = e.target.value; renderMain(); }
+});
+
+const ACTIONS = {
+  'logout': ()=>logout(),
+  'login': ()=>doLogin(),
+  'cadastro': ()=>doCadastro(),
+  'toggle-login-mode': el=>toggleLoginMode(el.dataset.mode),
+  'go-section': el=>goSection(el.dataset.section),
+  'clear-selection': ()=>clearSelection(),
+  'confirm-reserva': ()=>confirmReserva(),
+  'set-room': el=>setRoom(el.dataset.room),
+  'cancelar-reserva': el=>cancelarReserva(el.dataset.id),
+  'baixar-pdf-psicologo': ()=>baixarPdfPsicologo(),
+  'liberar-bloqueio-pontual': el=>liberarBloqueioPontual(el.dataset.id),
+  'remover-periodo': el=>removerPeriodo(el.dataset.id),
+  'gerar-pdf-agenda': el=>gerarPdfAgenda(el.dataset.tipo),
+  'set-bloq-tab': el=>setBloqTab(el.dataset.tab),
+  'bloquear-periodo': ()=>bloquearPeriodo(),
+  'set-bloq-room': el=>setBloqRoom(el.dataset.room),
+  'salvar-valor-hora': ()=>salvarValorHora(),
+  'alternar-papel': el=>alternarPapel(el.dataset.id, el.dataset.papel),
+  'baixar-pdf-admin': ()=>baixarPdfAdmin()
+};
+document.addEventListener('click', (e)=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const handler = ACTIONS[el.dataset.action];
+  if(handler) handler(el);
+});
+
+/* ===================== INIT ===================== */
+(async function init(){
+  aplicarMarca();
+  toggleLoginMode('entrar');
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){ await afterAuth(session.user); }
+})();
